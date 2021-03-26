@@ -1,0 +1,18 @@
+version: '3'
+services:
+  client:
+    build:
+      context: .
+      dockerfile: ./Dockerfile.test
+    container_name: client
+    command: ["go", "test", "-v", "./..."]
+    depends_on:
+      - registry
+  registry:
+    container_name: registry
+    image: confluentinc/cp-schema-registry:6.1.1
+    ports:
+      - "8085:8081"
+    restart: always
+
+

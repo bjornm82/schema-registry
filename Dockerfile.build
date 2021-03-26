@@ -1,0 +1,28 @@
+FROM golang:1.15.3-alpine AS build
+
+# Go Mod dependency
+RUN apk add git
+
+# CGO disabled, no gcc
+ENV CGO_ENABLED=0
+
+# Project directory related to the project itself
+ARG PROJECT_DIR
+
+# Create directory to align with gopath
+RUN mkdir -p $GOPATH/${PROJECT_DIR}
+
+# Workdirectory would be the actual gopath with project directory
+WORKDIR $GOPATH/${PROJECT_DIR}
+
+# Copy this project to the project directory
+COPY . .
+
+# Run tests in order to have the dependencies
+RUN go get ./...
+
+FROM scratch
+
+# Copy image to local environment (avoid circular dependency)
+ARG PROJECT_DIR
+COPY --from=build /go/${PROJECT_DIR}/bin /
