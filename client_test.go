@@ -5,9 +5,10 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
-	"reflect"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 const testHost = "testhost:1337"
@@ -34,13 +35,13 @@ func dummyHTTPHandler(t *testing.T, method, path string, status int, reqBody, re
 		if reqBody != nil {
 			expbs, err := json.Marshal(reqBody)
 			if err != nil {
-				t.Error(err)
+				t.Error(t, err)
 			}
 			bs, err := ioutil.ReadAll(req.Body)
 			if err != nil {
 				t.Error(t, err)
 			}
-			mustEqual(t, strings.Trim(string(bs), "\r\n"), strings.Trim(string(expbs), "\r\n"))
+			assert.Equal(t, strings.Trim(string(expbs), "\r\n"), strings.Trim(string(bs), "\r\n"))
 		}
 		var resp http.Response
 		resp.Header = http.Header{contentTypeHeaderKey: []string{contentTypeJSON}}
@@ -58,61 +59,70 @@ func dummyHTTPHandler(t *testing.T, method, path string, status int, reqBody, re
 }
 
 func httpSuccess(t *testing.T, method, path string, reqBody, respBody interface{}) *Client {
-	return &Client{testURL, dummyHTTPHandler(t, method, path, 200, reqBody, respBody)}
+	return &Client{testURL, dummyHTTPHandler(t, method, path, http.StatusOK, reqBody, respBody)}
 }
 
 func httpError(t *testing.T, status, errCode int, errMsg string) *Client {
 	return &Client{testURL, dummyHTTPHandler(t, "", "", status, nil, ResourceError{ErrorCode: errCode, Message: errMsg})}
 }
 
-func mustEqual(t *testing.T, actual, expected interface{}) {
-	if !reflect.DeepEqual(actual, expected) {
-		t.Errorf("expected `%#v`, got `%#v`", expected, actual)
-	}
-}
-
 func TestSubjects(t *testing.T) {
 	subsIn := []string{"rollulus", "hello-subject"}
-	c := httpSuccess(t, "GET", "/subjects", nil, subsIn)
+	c := httpSuccess(t, http.MethodGet, "/subjects", nil, subsIn)
 	subs, err := c.Subjects()
 	if err != nil {
-		t.Error()
+		t.Error(err)
 	}
-	mustEqual(t, subs, subsIn)
+	assert.Equal(t, subsIn, subs)
 }
 
 func TestVersions(t *testing.T) {
 	versIn := []int{1, 2, 3}
-	c := httpSuccess(t, "GET", "/subjects/mysubject/versions", nil, versIn)
-	vers, err := c.Versions("mysubject")
+	subjectName := "mysubject"
+	c := httpSuccess(t, http.MethodGet, "/subjects/"+subjectName+"/versions", nil, versIn)
+	vers, err := c.Versions(subjectName)
 	if err != nil {
-		t.Error()
+		t.Error(err)
 	}
-	mustEqual(t, vers, versIn)
+	assert.Equal(t, versIn, vers)
 }
 
 func TestIsRegistered_yes(t *testing.T) {
 	s := `{"x":"y"}`
 	ss := schemaOnlyJSON{s}
 	sIn := Schema{s, "mysubject", 4, 7}
-	c := httpSuccess(t, "POST", "/subjects/mysubject", ss, sIn)
+	c := httpSuccess(t, http.MethodPost, "/subjects/mysubject", ss, sIn)
 	isreg, sOut, err := c.IsRegistered("mysubject", s)
 	if err != nil {
-		t.Error()
+		t.Error(err)
 	}
 	if !isreg {
-		t.Error()
+		t.Error(err)
 	}
-	mustEqual(t, sOut, sIn)
+	assert.Equal(t, sIn, sOut)
 }
 
 func TestIsRegistered_not(t *testing.T) {
-	c := httpError(t, 404, schemaNotFoundCode, "too bad")
+	c := httpError(t, http.StatusNotFound, schemaNotFoundCode, "too bad")
 	isreg, _, err := c.IsRegistered("mysubject", "{}")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if isreg {
-		t.Fatalf("is registered: %v", err)
+	assert.False(t, isreg)
+}
+
+func TestIsSchemaCompatible(t *testing.T) {
+	s := `{"x":"y"}`
+	ss := schemaOnlyJSON{s}
+	sIn := Schema{s, "mysubject", 4, 7}
+	c := httpSuccess(t, http.MethodPost, "/subjects/mysubject", ss, sIn)
+	i := 2
+	ok, err := c.IsSchemaCompatible("mysubject", s, i)
+	if err != nil {
+		t.Error(err)
 	}
+	if !ok {
+		t.Error(err)
+	}
+	assert.True(t, ok)
 }
