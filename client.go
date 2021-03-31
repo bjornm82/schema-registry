@@ -6,6 +6,7 @@ import (
 	"compress/gzip"
 	"crypto/tls"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -13,6 +14,12 @@ import (
 	"net/url"
 	"strings"
 	"time"
+)
+
+const (
+	errHostEmpty                  = "host can not be empty"
+	errHostNotContainForwardSlash = "host can not contain a /"
+	errHostNotContainQuestionmark = "host can not contain a ?"
 )
 
 // DefaultURL is the address where a local schema registry listens by default.
@@ -83,53 +90,60 @@ func getTransportLayer(httpClient *http.Client, timeout time.Duration) (t http.R
 }
 
 // formatBaseURL will try to make sure that the schema:host:port pattern is followed on the `baseURL` field.
-func formatBaseURL(baseURL string) string {
-	if baseURL == "" {
-		return ""
+func formatBaseURL(host string, port int, useSSL bool) (string, error) {
+	if host == "" {
+		return "", errors.New(errHostEmpty)
 	}
 
-	// remove last slash, so the API can append the path with ease.
-	if baseURL[len(baseURL)-1] == '/' {
-		baseURL = baseURL[0 : len(baseURL)-1]
+	if strings.Contains(host, "/") {
+		return "", errors.New(errHostNotContainForwardSlash)
 	}
 
-	portIdx := strings.LastIndexByte(baseURL, ':')
-
-	schemaIdx := strings.Index(baseURL, "://")
-	hasSchema := schemaIdx >= 0
-	hasPort := portIdx > schemaIdx+1
-
-	var port = "80"
-	if hasPort {
-		port = baseURL[portIdx+1:]
+	if strings.Contains(host, "?") {
+		return "", errors.New(errHostNotContainQuestionmark)
 	}
 
-	// find the schema based on the port.
-	if !hasSchema {
-		if port == "443" {
-			baseURL = "https://" + baseURL
-		} else {
-			baseURL = "http://" + baseURL
-		}
-	} else if !hasPort {
-		// has schema but not port.
-		if strings.HasPrefix(baseURL, "https://") {
-			port = "443"
-		}
+	var scheme = "http"
+
+	if useSSL {
+		scheme = "https"
 	}
 
-	// finally, append the port part if it wasn't there.
-	if !hasPort {
-		baseURL += ":" + port
+	if port == 443 {
+		scheme = "https"
 	}
 
-	return baseURL
+	if port == 0 && useSSL {
+		scheme = "https"
+		port = 443
+	}
+
+	if port == 0 && !useSSL {
+		scheme = "http"
+		return fmt.Sprintf("%s://%s", scheme, host), nil
+	}
+
+	if port == 80 && !useSSL {
+		scheme = "http"
+		return fmt.Sprintf("%s://%s", scheme, host), nil
+	}
+
+	if port == 80 && useSSL {
+		scheme = "https"
+		return fmt.Sprintf("%s://%s", scheme, host), nil
+	}
+
+	return fmt.Sprintf("%s://%s:%d", scheme, host, port), nil
 }
 
 // NewClient creates & returns a new Registry Schema Client
 // based on the passed url and the options.
-func NewClient(baseURL string, options ...Option) (*Client, error) {
-	baseURL = formatBaseURL(baseURL)
+func NewClient(host string, port int, useSSL bool, options ...Option) (*Client, error) {
+	baseURL, err := formatBaseURL(host, port, useSSL)
+	if err != nil {
+		return nil, err
+	}
+
 	if _, err := url.Parse(baseURL); err != nil {
 		return nil, err
 	}

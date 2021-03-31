@@ -85,7 +85,11 @@ func getConfig(subj string) error {
 }
 
 func assertClient() *schemaregistry.Client {
-	c, err := schemaregistry.NewClient(viper.GetString("url"))
+	c, err := schemaregistry.NewClient(
+		viper.GetString("host"),
+		viper.GetInt("port"),
+		viper.GetBool("useSSL"),
+	)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(-1)

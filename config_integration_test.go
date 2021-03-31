@@ -7,11 +7,13 @@ import (
 )
 
 const (
-	DefaultClientURI = "http://localhost:8081"
+	DefaultHost   = "localhost"
+	DefaultPort   = 8081
+	DefaultUseSSL = false
 )
 
 func TestSetConfig(t *testing.T) {
-	cl, err := NewClient(DefaultClientURI)
+	cl, err := NewClient(DefaultHost, DefaultPort, DefaultUseSSL)
 	if err != nil {
 		t.Error(t, err)
 	}
@@ -24,7 +26,7 @@ func TestSetConfig(t *testing.T) {
 }
 
 func TestGetConfig(t *testing.T) {
-	cl, err := NewClient(DefaultClientURI)
+	cl, err := NewClient(DefaultHost, DefaultPort, DefaultUseSSL)
 	if err != nil {
 		t.Error(t, err)
 	}
@@ -34,4 +36,30 @@ func TestGetConfig(t *testing.T) {
 	}
 	assert.Equal(t, "", c.Compatibility)
 	assert.Equal(t, "FULL", c.CompatibilityLevel)
+}
+
+func TestSetConfig_PutToBackward(t *testing.T) {
+	cl, err := NewClient(DefaultHost, DefaultPort, DefaultUseSSL)
+	if err != nil {
+		t.Error(t, err)
+	}
+	c, err := cl.SetConfigLevel(Backward, "")
+	if err != nil {
+		t.Error(t, err)
+	}
+	assert.Equal(t, "BACKWARD", c.Compatibility)
+	assert.Equal(t, "", c.CompatibilityLevel)
+}
+
+func TestGetConfig_CheckIfBackward(t *testing.T) {
+	cl, err := NewClient(DefaultHost, DefaultPort, DefaultUseSSL)
+	if err != nil {
+		t.Error(t, err)
+	}
+	c, err := cl.GetConfig("")
+	if err != nil {
+		t.Error(t, err)
+	}
+	assert.Equal(t, "", c.Compatibility)
+	assert.Equal(t, "BACKWARD", c.CompatibilityLevel)
 }
