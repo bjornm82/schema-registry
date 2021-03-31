@@ -136,17 +136,6 @@ func TestFormatBaseURL(t *testing.T) {
 		})
 	}
 }
-
-func TestNewClient(t *testing.T) {
-	cl, err := NewClient("localhost", 1234, false)
-	if err != nil {
-		t.Error(t, err)
-	}
-	client := *cl
-
-	assert.Equal(t, "http://localhost:1234", client.baseURL)
-}
-
 func TestNewClient_FailedIncorrectHostEmpty(t *testing.T) {
 	_, err := NewClient("", 1324, false)
 	assert.Error(t, err)

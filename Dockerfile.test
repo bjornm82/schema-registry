@@ -1,0 +1,25 @@
+FROM golang:1.15.3-alpine AS build
+
+# Using curl for health (wait-for-up-sh)
+RUN apk add curl
+
+# Go Mod dependency
+RUN apk add git
+
+# CGO disabled, no gcc
+ENV CGO_ENABLED=0
+
+# Project directory related to the project itself
+ARG PROJECT_DIR
+
+# Create directory to align with gopath
+RUN mkdir -p $GOPATH/${PROJECT_DIR}
+
+# Workdirectory would be the actual gopath with project directory
+WORKDIR $GOPATH/${PROJECT_DIR}
+
+# Copy this project to the project directory
+COPY . .
+
+# Go get dependencies for the go project
+RUN go get ./...
