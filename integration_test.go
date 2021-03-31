@@ -17,6 +17,8 @@ var (
 	DefaultUseSSL = false
 )
 
+// # TODO make integration tests
+
 // # Register a new version of a schema under the subject "Kafka-value"
 // $ curl -X POST -H "Content-Type: application/vnd.schemaregistry.v1+json" \
 //     --data '{"schema": "{\"type\": \"string\"}"}' \

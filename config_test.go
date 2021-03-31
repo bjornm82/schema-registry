@@ -6,8 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestCompatibilityLevelString_Passed(t *testing.T) {
-
+func TestCompatibilityLevelString(t *testing.T) {
 	tests := []struct {
 		input  CompatibilityLevel
 		output string

@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -127,6 +128,36 @@ var formatBaseURLTest = []TestStruct{
 	},
 }
 
+func TestNewClient(t *testing.T) {
+	cl, err := NewClient("localhost", 1234, false)
+	if err != nil {
+		t.Error(t, err)
+	}
+	assert.Equal(t, "http://localhost:1234", cl.baseURL)
+}
+
+func TestNewClientWithUsingClient(t *testing.T) {
+	emptyCl := http.Client{
+		Timeout: time.Hour,
+	}
+	cl, err := NewClient("localhost", 1234, false, UsingClient(&emptyCl))
+	if err != nil {
+		t.Error(t, err)
+	}
+	custCl := cl.client
+
+	c := custCl.(*http.Client)
+
+	assert.Equal(t, float64(1), c.Timeout.Hours())
+	assert.Equal(t, "http://localhost:1234", cl.baseURL)
+}
+
+func TestUsingClient(t *testing.T) {
+	cl := http.Client{}
+	UsingClient(&cl)
+	assert.Equal(t, http.Client{}, cl)
+}
+
 func TestFormatBaseURL(t *testing.T) {
 	for k, tt := range formatBaseURLTest {
 		t.Run(fmt.Sprintf("host %s, with test ID %d", tt.in.host, k), func(t *testing.T) {
@@ -136,6 +167,7 @@ func TestFormatBaseURL(t *testing.T) {
 		})
 	}
 }
+
 func TestNewClient_FailedIncorrectHostEmpty(t *testing.T) {
 	_, err := NewClient("", 1324, false)
 	assert.Error(t, err)

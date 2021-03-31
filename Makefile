@@ -3,8 +3,7 @@ VERSION ?= $(shell git describe --tags --always)
 COMMIT ?= $(shell git rev-parse HEAD)
 BRANCH ?= $(shell git rev-parse --abbrev-ref HEAD)
 
-DEP_IMAGE_NAME ?= confluentinc/cp-schema-registry:6.1.1
-DEP_CONTAINER_NAME ?= registry-test
+DEP_IMAGE_VERSION ?= 6.1.1
 
 LDFLAGS = "-w -X main.Version=$(VERSION) -X main.COMMIT=${COMMIT} -X main.BRANCH=${BRANCH}"
 
@@ -27,7 +26,7 @@ test-unit:
 
 .PHONY: test-integration
 test-integration:
-	PROJECT_DIR=src/github.com/bjornm82 CONFLUENT_VERSION=6.1.0 docker-compose up --build --exit-code-from client && \
+	PROJECT_DIR=src/github.com/bjornm82 CONFLUENT_VERSION=${DEP_IMAGE_VERSION} docker-compose up --build --exit-code-from client && \
 	docker-compose down
 
 # .PHONY: benchmark
