@@ -21,32 +21,18 @@ build:
 	@docker build . -f Dockerfile.build \
 		--build-arg PROJECT_DIR=${PROJECT_DIR}
 
-.PHONY: test-all test-db-run test-integration test-db-kill
-test-all: test-unit test-db-run test-integration test-db-kill
-
 .PHONY: test-unit
 test-unit:
 	go test -race -v ./...
 
-.PHONY: test-db-run
-test-db-run:
-	docker run --rm -d --name ${DEP_CONTAINER_NAME} -e SCHEMA_REGISTRY_HOST_NAME=schema-registry -e SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS='broker:29092' -e SCHEMA_REGISTRY_LISTENERS=http://0.0.0.0:8081 -p 8086:8081 ${DEP_IMAGE_NAME}
-
 .PHONY: test-integration
 test-integration:
-	go test -tags=integration
-
-.PHONY: test-db-kill
-test-db-kill:
-	docker kill ${DEP_CONTAINER_NAME}
+	PROJECT_DIR=src/github.com/bjornm82 CONFLUENT_VERSION=6.1.0 docker-compose up --build --exit-code-from client && \
+	docker-compose down
 
 # .PHONY: benchmark
 # benchmark:
 # 	go test -bench=. -benchmem -cpuprofile profile.out -memprofile memory.out ./internal/
-
-.PHONY: test
-test:
-	go test -race -v ./...
 
 .PHONY: godoc
 # Godoc command, in order to check the package go to:
