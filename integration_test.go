@@ -91,16 +91,6 @@ func init() {
 	client = cl
 }
 
-func TestNewClient(t *testing.T) {
-	cl, err := NewClient(DefaultHost, 1234, false)
-	if err != nil {
-		t.Error(t, err)
-	}
-	client := *cl
-
-	assert.Equal(t, "http://"+DefaultHost+":1234", client.baseURL)
-}
-
 var subjectName = "schema-" + strconv.Itoa(int(time.Now().Unix()))
 
 func TestCreateNewSchema(t *testing.T) {
